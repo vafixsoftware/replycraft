@@ -6,26 +6,21 @@ export async function POST(req: Request) {
     const { review, tone } = body;
     const apiKey = process.env.GOOGLE_API_KEY;
 
-    // Log-uri pentru debug (să vedem în Vercel dacă totul e ok)
-    console.log("--- GENERARE CU GEMINI 1.5 PRO ---");
+    console.log("--- ÎNCERCARE CU GEMINI PRO (CLASSIC) ---");
 
     if (!apiKey) {
-      console.error("LIPSA API KEY!");
       return NextResponse.json({ error: "Lipsă API Key" }, { status: 500 });
     }
 
-    // === Marea Schimbare ===
-    // Folosim 'gemini-1.5-pro' - Modelul Premium
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+    // === SCHIMBAREA FINALĂ ===
+    // Folosim 'gemini-pro' simplu. Acesta este modelul 1.0 Stable.
+    // Nu are moarte. Merge oricând.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
     const requestBody = {
       contents: [{
         parts: [{
-          text: `You are a helpful customer support expert. 
-          Task: Write a ${tone} reply to this review: "${review}". 
-          
-          Important: Detect the language of the review and reply in the SAME language.
-          Keep it professional, empathetic, and concise.`
+          text: `You are a customer support agent. Write a ${tone} reply to: "${review}". Detect language and reply in same language.`
         }]
       }]
     };
@@ -41,7 +36,7 @@ export async function POST(req: Request) {
     if (!response.ok) {
       console.error("Eroare Google:", JSON.stringify(data));
       return NextResponse.json({ 
-        error: data.error?.message || "Eroare la modelul Pro." 
+        error: data.error?.message || "Eroare API Google" 
       }, { status: 500 });
     }
 
