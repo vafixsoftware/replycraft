@@ -1,40 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Memoria serverului
-const ipCache = new Map<string, number>();
-
 export async function POST(req: Request) {
   try {
-    // === REPARAȚIA AICI ===
-    // Citim header-ul specific Vercel
-    const forwarded = req.headers.get("x-forwarded-for");
-    // Luăm primul IP din listă (acela e clientul real), sau un ID random dacă nu există
-    const ip = forwarded ? forwarded.split(',')[0] : "unknown_user";
-
-    // Dacă serverul nu reușește să citească IP-ul, nu blocăm userul (ca să nu blocăm pe toată lumea)
-    if (ip === "unknown_user") {
-      console.log("Nu s-a putut detecta IP-ul.");
-    }
-
-    console.log(`Cerere de la IP: ${ip}`); // Vedem în loguri cine cere
-
-    const currentUsage = ipCache.get(ip) || 0;
-    const LIMITA_MAXIMA = 5;
-
-    // Verificăm limita DOAR dacă avem un IP valid (nu e unknown)
-    if (ip !== "unknown_user" && currentUsage >= LIMITA_MAXIMA) {
-      return NextResponse.json(
-        { error: "Ai atins limita de 5 generări gratuite pe acest dispozitiv." },
-        { status: 429 }
-      );
-    }
-
-    // Creștem contorul
-    if (ip !== "unknown_user") {
-      ipCache.set(ip, currentUsage + 1);
-    }
-
-    // --- LOGICA GEMINI ---
     const { review, tone } = await req.json();
     const apiKey = process.env.GOOGLE_API_KEY;
 
