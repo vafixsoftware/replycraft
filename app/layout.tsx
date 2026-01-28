@@ -17,13 +17,17 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider 
-  appearance={{
-    elements: {
-      footer: "hidden"
-    }
-  }}
->
-  {/* restul codului tau */}
-</ClerkProvider>
+      appearance={{
+        elements: {
+          footer: "hidden" // Asta ascunde "Secured by Clerk"
+        }
+      }}
+    >
+      <html lang="en">
+        <body className={inter.className}>
+            {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
