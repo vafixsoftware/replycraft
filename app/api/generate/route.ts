@@ -6,16 +6,20 @@ export async function POST(req: Request) {
     const apiKey = process.env.GOOGLE_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: "Lipsă API Key în mediu" }, { status: 500 });
+      return NextResponse.json({ error: "Lipsă API Key" }, { status: 500 });
     }
 
-    // Am adăugat "-latest" pentru a forța Google să găsească versiunea activă
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    // Folosim modelul STANDARD, stabil și generos (1500 cereri/zi)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const requestBody = {
       contents: [{
         parts: [{
-          text: `Ești un asistent expert în customer support. Scrie un răspuns ${tone} la următoarea recenzie: "${review}". Răspunde direct în limba în care este scrisă recenzia.`
+          text: `You are an expert customer support agent. 
+          Task: Write a ${tone} reply to the following review: "${review}".
+          
+          CRITICAL INSTRUCTION: Detect the language of the review and write the reply in the SAME LANGUAGE.
+          Do not add any explanations, just the reply text.`
         }]
       }]
     };
@@ -29,11 +33,8 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Detalii eroare Google:", data);
-      return NextResponse.json({ 
-        error: data.error?.message || "Google API Error",
-        details: data.error 
-      }, { status: response.status });
+      console.error("Eroare Google:", data); // Asta ne ajută să vedem eroarea în logurile Vercel
+      return NextResponse.json({ error: data.error?.message || "Eroare la generare" }, { status: 500 });
     }
 
     const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;

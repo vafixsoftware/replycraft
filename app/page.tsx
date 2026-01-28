@@ -107,7 +107,7 @@ export default function Home() {
               : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-xl hover:shadow-blue-500/30"
             }`}
           >
-            {loading ? "Connecting to Neural Network..." : "Generate Magic Reply"}
+            {loading ? "Connecting to Neural Network..." : "Generate Flash Reply"}
           </button>
 
           {reply && (
