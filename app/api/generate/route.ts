@@ -1,31 +1,40 @@
 import { NextResponse } from "next/server";
 
-// Aceasta este "memoria" serverului unde ținem minte cine a intrat
-// Format: { "IP_ADRESA": NUMAR_CERERI }
+// Memoria serverului
 const ipCache = new Map<string, number>();
 
 export async function POST(req: Request) {
   try {
-    // 1. Aflăm IP-ul utilizatorului
-    // Pe Vercel, IP-ul real se află în header-ul 'x-forwarded-for'
-    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    // === REPARAȚIA AICI ===
+    // Citim header-ul specific Vercel
+    const forwarded = req.headers.get("x-forwarded-for");
+    // Luăm primul IP din listă (acela e clientul real), sau un ID random dacă nu există
+    const ip = forwarded ? forwarded.split(',')[0] : "unknown_user";
 
-    // 2. Verificăm de câte ori a generat deja
+    // Dacă serverul nu reușește să citească IP-ul, nu blocăm userul (ca să nu blocăm pe toată lumea)
+    if (ip === "unknown_user") {
+      console.log("Nu s-a putut detecta IP-ul.");
+    }
+
+    console.log(`Cerere de la IP: ${ip}`); // Vedem în loguri cine cere
+
     const currentUsage = ipCache.get(ip) || 0;
     const LIMITA_MAXIMA = 5;
 
-    // 3. Dacă a depășit limita, îi dăm STOP
-    if (currentUsage >= LIMITA_MAXIMA) {
+    // Verificăm limita DOAR dacă avem un IP valid (nu e unknown)
+    if (ip !== "unknown_user" && currentUsage >= LIMITA_MAXIMA) {
       return NextResponse.json(
-        { error: "Limita gratuită atinsă (5/5). Te rugăm să faci upgrade." },
-        { status: 429 } // Codul 429 înseamnă "Too Many Requests"
+        { error: "Ai atins limita de 5 generări gratuite pe acest dispozitiv." },
+        { status: 429 }
       );
     }
 
-    // 4. Dacă e ok, creștem contorul pentru acest IP
-    ipCache.set(ip, currentUsage + 1);
+    // Creștem contorul
+    if (ip !== "unknown_user") {
+      ipCache.set(ip, currentUsage + 1);
+    }
 
-    // --- CONTINUĂM CU LOGICA VECHE PENTRU GEMINI ---
+    // --- LOGICA GEMINI ---
     const { review, tone } = await req.json();
     const apiKey = process.env.GOOGLE_API_KEY;
 
@@ -42,8 +51,6 @@ export async function POST(req: Request) {
           Task: Write a ${tone} reply to the following review: "${review}".
           
           CRITICAL INSTRUCTION: Detect the language of the review and write the reply in the SAME LANGUAGE. 
-          (Example: If review is Romanian, reply in Romanian. If English, reply in English).
-          
           Do not add any explanations, just the reply text.`
         }]
       }]
