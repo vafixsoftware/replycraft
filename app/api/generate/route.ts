@@ -6,62 +6,46 @@ export async function POST(req: Request) {
     const { review, tone } = body;
     const apiKey = process.env.GOOGLE_API_KEY;
 
+    // Confirmare în loguri că folosim modelul tău specific
+    console.log("--- FOLOSIM MODELUL TĂU: gemini-robotics-er-1.5-preview ---");
+
     if (!apiKey) {
       return NextResponse.json({ error: "Lipsă API Key" }, { status: 500 });
     }
 
-    // LISTA DE MODELE PE CARE LE VOM TESTA AUTOMAT
-    // Dacă primul dă eroare, trecem la următorul.
-    const modelsToTry = [
-      "gemini-1.5-flash",         // Cel mai nou și rapid
-      "gemini-1.5-flash-latest",  // Varianta latest
-      "gemini-1.0-pro",           // Varianta stabilă a modelului vechi
-      "gemini-pro"                // Alias-ul vechi
-    ];
+    // === AICI ESTE SECRETUL ===
+    // Am scris exact numele modelului tău din dashboard
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-robotics-er-1.5-preview:generateContent?key=${apiKey}`;
 
-    let lastError = null;
-
-    // Încercăm modelele pe rând
-    for (const modelName of modelsToTry) {
-      console.log(`Trying model: ${modelName}...`);
-      
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      
-      const requestBody = {
-        contents: [{
-          parts: [{
-            text: `You are a customer support agent. Write a ${tone} reply to: "${review}". Detect language and reply in same language.`
-          }]
+    const requestBody = {
+      contents: [{
+        parts: [{
+          text: `You are a customer support agent. Write a ${tone} reply to: "${review}". Detect language and reply in same language.`
         }]
-      };
+      }]
+    };
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok && data.candidates) {
-        // AM REUȘIT!
-        console.log(`SUCCESS with model: ${modelName}`);
-        const replyText = data.candidates[0].content.parts[0].text;
-        return NextResponse.json({ reply: replyText });
-      } else {
-        // Eșec pe acest model, ținem minte eroarea și continuăm
-        console.error(`Failed ${modelName}:`, data.error?.message);
-        lastError = data.error?.message;
-      }
+    if (!response.ok) {
+      console.error("Eroare Google:", JSON.stringify(data));
+      return NextResponse.json({ 
+        error: data.error?.message || "Eroare API" 
+      }, { status: 500 });
     }
 
-    // Dacă am ajuns aici, înseamnă că TOATE au eșuat
-    return NextResponse.json({ 
-      error: `Toate modelele au eșuat. Ultima eroare: ${lastError}` 
-    }, { status: 500 });
+    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    return NextResponse.json({ reply: replyText });
 
   } catch (error) {
-    console.error("Critical Server Error:", error);
-    return NextResponse.json({ error: "Eroare internă gravă." }, { status: 500 });
+    console.error("Crash:", error);
+    return NextResponse.json({ error: "Eroare internă." }, { status: 500 });
   }
 }
