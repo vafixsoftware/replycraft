@@ -16,10 +16,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={inter.className}>{children}</body>
-      </html>
-    </ClerkProvider>
+    <ClerkProvider 
+  appearance={{
+    elements: {
+      footer: "hidden"
+    }
+  }}
+>
+  {/* restul codului tau */}
+</ClerkProvider>
   );
 }
